@@ -58,14 +58,26 @@ export default {
   },
 
   data() {
+    const requiredEnvVars = [
+      'VUE_APP_WS_HOST',
+      'VUE_APP_WS_PORT',
+      'VUE_APP_WS_TOKEN'
+    ];
+
+    for (const envVar of requiredEnvVars) {
+      if (!process.env[envVar]) {
+        throw new Error(`Missing required environment variable: ${envVar}`);
+      }
+    }
+
     return {
       messages: [],
       systemMessages: [],
       llmResponse: '',
       client: new VoiceAgentClient(
-        process.env.VUE_APP_WS_HOST || "localhost",
-        process.env.VUE_APP_WS_PORT || 8564,
-        process.env.VUE_APP_WS_TOKEN || ""
+        process.env.VUE_APP_WS_HOST,
+        process.env.VUE_APP_WS_PORT,
+        process.env.VUE_APP_WS_TOKEN
       ),
       agentState: 'disconnected',
       audioStreamPlayer: new WavStreamPlayer({ sampleRate: 24000 }),
