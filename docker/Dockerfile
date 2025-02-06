@@ -5,6 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install SSH server, sudo, and other dependencies
 RUN apt-get update && apt-get install -y \
     openssh-server \
+    mkcert \
     netcat \
     sudo \
     curl \
