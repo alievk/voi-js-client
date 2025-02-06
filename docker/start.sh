@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cd /home/user/sources/voice-agent-front
+cd /home/user/voi-js-client
 npm install
 npm run serve

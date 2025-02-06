@@ -22,7 +22,7 @@ services:
     ports:
       - "443:8080"
     volumes:
+      - ../:/home/user/voi-js-client
       - ${HOME}/.gitconfig:/home/user/.gitconfig:ro
-      - ${HOME}/sources:/home/user/sources
       - ${HOME}/.cursor-server:/home/user/.cursor-server
       - ${HOME}/.cache:/home/user/.cache
