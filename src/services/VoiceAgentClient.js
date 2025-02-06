@@ -120,9 +120,14 @@ export class VoiceAgentClient {
 
     async getMetrics() {
       try {
+        const apiKey = process.env.VUE_APP_API_KEY;
+        if (!apiKey) {
+          throw new Error('VUE_APP_API_KEY environment variable is not defined');
+        }
+
         const response = await fetch(`https://${this.hostname}:${this.port}/metrics`, {
           headers: {
-            'API-Key': process.env.VUE_APP_API_KEY
+            'API-Key': apiKey
           }
         });
         if (!response.ok) {
