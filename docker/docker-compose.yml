@@ -2,18 +2,18 @@ version: '3.8'
 
 networks:
   default:
-    name: voice_agent_front_network
+    name: voi-js-client-network
     driver: bridge
 
 services:
-  voice_agent_front:
+  voi-js-client:
     build: 
       context: .
       dockerfile: Dockerfile
       args:
         USER_ID: ${USER_ID}
         GROUP_ID: ${GROUP_ID}
-    container_name: voice_agent_front_container
+    container_name: voi-js-client-container
     deploy:
       resources:
         limits:
