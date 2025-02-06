@@ -22,7 +22,8 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
+# Sensitive data
 *.pem
 *.key
-
 .env
+agents.json
