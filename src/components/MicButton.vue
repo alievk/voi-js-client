@@ -100,7 +100,7 @@ export default {
     }
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     // Cleanup timeouts
     if (this.recordingTimeout) clearTimeout(this.recordingTimeout)
     if (this.animationTimeout) clearTimeout(this.animationTimeout)
