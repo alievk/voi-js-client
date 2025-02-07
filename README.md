@@ -1,8 +1,8 @@
-# Voi JS client
-I was making this client for testing the Voi backend from the beginning. It has a primitive design, but it makes the job!
+# Voi JS Client
+I created this client for testing the Voi backend from the beginning. It has a primitive design, but it gets the job done!
 
 ## Requirements
-This app is made on top of [Vue](https://vuejs.org/), but all you need is Docker on your machine.
+This app is built on top of [Vue](https://vuejs.org/), but all you need is Docker on your machine.
 
 ## Installation
 Get the code.
@@ -18,10 +18,10 @@ cp .env.example .env
 In `.env`:
 - `VUE_APP_WS_HOST` is the host address where the Voi server runs.
 - `VUE_APP_WS_PORT` is the port the server listens on.
-- `VUE_APP_WS_TOKEN` is the [access token](https://github.com/alievk/voi-server/blob/main/README.md#access-tokens) for the websocket connection.
-- `VUE_APP_API_KEY` is the [HTTPS API key](https://github.com/alievk/voi-server/blob/main/README.md#environment-variables) (we need it to collect the server metrics etc.).
+- `VUE_APP_WS_TOKEN` is the [access token](https://github.com/alievk/voi-server/blob/main/README.md#access-tokens) for the WebSocket connection.
+- `VUE_APP_API_KEY` is the [HTTPS API key](https://github.com/alievk/voi-server/blob/main/README.md#environment-variables) (needed to collect server metrics, etc.).
 
-**Important**: If you use Caddy, the host name and port must match the one defined it `Caddyfile`.
+**Important**: If you use Caddy, the hostname and port must match the ones defined in the `Caddyfile`.
 
 Configure agents.
 ```bash
@@ -36,7 +36,7 @@ cd docker
 ./up.sh
 ```
 
-When the Vue server is up, go to `https://vue_host_address`. On the first visit, you will see an "unsecure connection" warning, where you have to click on `Proceed`. If you need to get rid of this warning, you have to get a trusted certificate from a service like `Let's encrypt`.
+When the Vue server is up, go to `https://vue_host_address`. On the first visit, you will see an "unsecure connection" warning, where you have to click on `Proceed`. If you need to get rid of this warning, you have to get a trusted certificate from a service like `Let's Encrypt`.
 
 If you are changing the files, the more reliable way to restart the container is this:
 ```bash
