@@ -22,11 +22,13 @@ In `.env`:
 - `VUE_APP_WS_PORT` is the port the server listens on.
 - `VUE_APP_WS_TOKEN` is the [access token](https://github.com/alievk/voi-server/blob/main/README.md#access-tokens) for the WebSocket connection.
 - `VUE_APP_API_KEY` is the [HTTPS API key](https://github.com/alievk/voi-server/blob/main/README.md#environment-variables) (needed to collect server metrics, etc.).
+- `VUE_APP_AGENTS_FILE` is the path to a file with the agents.
 
 **Important**: If you use Caddy, the hostname and port must match the ones defined in the `Caddyfile`.
 
 Configure agents.
 ```bash
+cd config
 cp agents.example.json agents.json
 ```
 The format is the same as the [server's agents.json](https://github.com/alievk/voi-server/blob/main/README.md#agents), but the control agents are not supported here and must be defined on the server side.

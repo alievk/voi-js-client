@@ -26,4 +26,6 @@ pnpm-debug.log*
 *.pem
 *.key
 .env
-agents.json
+
+config/*.json
+!config/agents.example.json

@@ -248,7 +248,7 @@ export default {
 
     fetchAgents() {
       try {
-        return require('../agents.json');
+        return require('/' + process.env['VUE_APP_AGENTS_FILE'] || '/config/agents.example.json');
       } catch (error) {
         this.addSystemMessage(`Error loading agents: ${error}`);
         return [];
