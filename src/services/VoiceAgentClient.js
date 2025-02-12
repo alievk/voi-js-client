@@ -82,7 +82,11 @@ export class VoiceAgentClient {
     }
 
     sendAudioChunk(chunk) {
-      this._send(chunk);
+      const metadata = {
+        type: 'audio'
+      };
+      const blob = this._serializeMessage(metadata, chunk);
+      this._send(blob);
     }
 
     sendTextMessage = (message) => {
@@ -154,24 +158,36 @@ export class VoiceAgentClient {
   
     _sendJson = (data) => {
       try {
-        this._send(JSON.stringify(data));
+        const blob = this._serializeMessage(data);
+        this._send(blob);
       } catch (error) {
         this._onError(`Failed to stringify message: ${error.message}`);
       }
     };
 
-    /**
-     * Handles incoming socket messages
-     * @private
-     * @param {MessageEvent} event - The WebSocket message event
-     */
+    _parseMessage = async (data) => {
+        const arrayBuffer = await data.arrayBuffer();
+        const dataView = new DataView(arrayBuffer);
+        const metadataLength = dataView.getUint32(0);
+        const metadata = JSON.parse(new TextDecoder().decode(arrayBuffer.slice(4, 4 + metadataLength)));
+        const payload = arrayBuffer.slice(4 + metadataLength);
+        return { metadata, payload };
+    }
+
+    _serializeMessage = (metadata, payload) => {
+      const metadataBytes = new TextEncoder().encode(JSON.stringify(metadata));
+      const metadataLengthBuffer = new ArrayBuffer(4);
+      new DataView(metadataLengthBuffer).setUint32(0, metadataBytes.length);
+      return new Blob([
+          metadataLengthBuffer,
+          metadataBytes,
+          payload
+      ]);
+    }
+
     _socketMessageHandler = async (event) => {
         try {
-            const arrayBuffer = await event.data.arrayBuffer();
-            const dataView = new DataView(arrayBuffer);
-            const metadataLength = dataView.getUint32(0);
-            const metadata = JSON.parse(new TextDecoder().decode(arrayBuffer.slice(4, 4 + metadataLength)));
-            const payload = arrayBuffer.slice(4 + metadataLength);
+            const { metadata, payload } = await this._parseMessage(event.data);
             if (metadata.type === 'message' || metadata.type === 'audio' || metadata.type === 'llm_response') {
               if (this.onMessage) {
                 this.onMessage(metadata, payload);
@@ -225,5 +241,4 @@ export class VoiceAgentClient {
       };
       return codes[code] || `Unknown code: ${code}`;
     };
-  }
-  
+}
