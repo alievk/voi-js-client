@@ -118,12 +118,16 @@ export default {
         if (metadata.type === 'audio') {
           this.audioStreamPlayer.add16BitPCM(payload, metadata.speech_id);
         } else if (metadata.type === 'message') {
-          this.updateMessages({
-            role: metadata.role,
-            content: metadata.content,
-            timestamp: metadata.time,
-            messageId: metadata.id
-          });
+          for (const item of metadata.content) {
+            if (item.type === 'text') {
+              this.updateMessages({
+                role: metadata.role,
+                content: item.text,
+                timestamp: metadata.time,
+                messageId: metadata.id
+              });
+            }
+          }
         } else if (metadata.type === 'llm_response') {
           this.llmResponse = metadata.content;
         }
