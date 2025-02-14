@@ -22,7 +22,7 @@
           :agentState="agentState"
           @start-recording="startRecordingUserAudio"
           @stop-recording="stopRecordingUserAudio"
-          @send-text="sendTextMessage"
+          @send-message="sendMessage"
           @input-mode-change="mode => inputMode = mode"
           @system-message="addSystemMessage"
           @clean-messages="cleanMessages"
@@ -216,11 +216,15 @@ export default {
       });
     },
 
-    sendTextMessage(message) {
-      const textMessage = message.trim();
-      if (!textMessage) return;
-      this.client.sendTextMessage(textMessage);
-      this.$emit('system-message', `Sent text message: ${textMessage}`);
+    sendMessage(text, image) {
+      if (image) {
+        this.client.sendImage(image.url);
+        this.$emit('system-message', `Sent image: ${image.url}`);
+      }
+      if (text) {
+        this.client.sendTextMessage(text);
+        this.$emit('system-message', `Sent text message: ${text}`);
+      }
     },
 
     async sendUserInterrupt() {

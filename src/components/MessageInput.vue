@@ -1,8 +1,8 @@
 <template>
   <div class="audio-streamer" ref="audioStreamer" @paste="handlePaste">
     <div class="input-wrapper">
-      <div v-if="imageData" class="image-preview">
-        <img :src="imageData" alt="Pasted image" />
+      <div v-if="image" class="image-preview">
+        <img :src="image.data" alt="Pasted image" />
         <button class="delete-button" @click="deleteImage">×</button>
       </div>
       <div class="text-input-container">
@@ -10,13 +10,13 @@
           type="text" 
           v-model="textMessage" 
           placeholder="Type a message..."
-          @keyup.enter="sendTextMessage"
+          @keyup.enter="sendMessage"
           @paste="handlePaste"
         >
         <button 
-          @click="sendTextMessage" 
+          @click="sendMessage" 
           :class="['button', 'send-button']"
-          :disabled="agentState !== 'ready'"
+          :disabled="!(agentState == 'ready' && (textMessage.trim().length > 0 || image))"
         >
           Send
         </button>
@@ -33,6 +33,7 @@
 
 <script>
 import MicButton from './MicButton.vue'
+import { uploadImage, decodeBase64Image } from '../services/AWSImageUploader.js';
 
 export default {
   components: {
@@ -45,7 +46,7 @@ export default {
   data() {
     return {
       textMessage: '',
-      imageData: null
+      image: null,
     }
   },
   mounted() {
@@ -55,29 +56,33 @@ export default {
     window.removeEventListener('paste', this.handlePaste);
   },
   methods: {
-    sendTextMessage() {
-      if (!this.textMessage.trim()) return;
-      this.$emit('send-text', this.textMessage.trim());
+    sendMessage() {
+      const text = this.textMessage.trim();
+      if (!text && !this.image) return;
+      this.$emit('send-message', text, this.image);
       this.textMessage = '';
+      this.image = null;
     },
+
     handlePaste(event) {
-      console.log('Paste event triggered');
       const items = event.clipboardData?.items;
-      console.log('Clipboard items:', items);
-      
       if (!items) return;
       
       for (const item of items) {
-        console.log('Item type:', item.type);
         if (item.type.indexOf('image') !== -1) {
           event.preventDefault();
           const file = item.getAsFile();
-          console.log('Image file:', file);
           
           const reader = new FileReader();
-          reader.onload = (e) => {
-            console.log('Image loaded');
-            this.imageData = e.target.result;
+          reader.onload = async (e) => {
+            const imageData = e.target.result;
+            const imageBuffer = decodeBase64Image(imageData);
+            const imageUrl = await uploadImage(imageBuffer, "voi-js-client-image.png");
+            this.image = {
+              data: imageData,
+              url: imageUrl,
+              name: "voi-js-client-image.png"
+            }
           };
           reader.onerror = (e) => console.error('FileReader error:', e);
           reader.readAsDataURL(file);
@@ -85,8 +90,9 @@ export default {
         }
       }
     },
+    
     deleteImage() {
-      this.imageData = null;
+      this.image = null;
     }
   }
 }

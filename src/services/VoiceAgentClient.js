@@ -90,12 +90,24 @@ export class VoiceAgentClient {
     }
 
     sendTextMessage = (message) => {
-      if (!message) {
-        throw new Error('Message is required');
-      }
       this._sendJson({
           type: 'manual_text',
           content: message
+      });
+    }
+
+    sendBlob = (blob, type) => {
+      const metadata = {
+        type: type
+      };
+      const data = this._serializeMessage(metadata, blob);
+      this._send(data);
+    }
+
+    sendImage = (imageUrl) => {
+      this._sendJson({
+          type: 'image_url',
+          image_url: imageUrl
       });
     }
     
