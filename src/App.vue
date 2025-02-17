@@ -127,7 +127,7 @@ export default {
               this.updateMessages({
                 role: metadata.role,
                 content: item.text,
-                timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                timestamp: Date.now(),
                 messageId: metadata.id
               });
             }
@@ -215,14 +215,20 @@ export default {
     },
 
     addAudioMessage(audio, role) {
-      const lastUserMessage = this.messages.findLast(m => m.role === role);
-      if (!lastUserMessage) return;
-      const messageId = lastUserMessage.messageId + (role === 'assistant' ? 1000 : 2000);
       this.updateMessages({
         role: role,
         content: audio.url,
-        timestamp: lastUserMessage.timestamp,
-        messageId: messageId
+        timestamp: Date.now(),
+        messageId: 1000 + this.messages.length
+      });
+    },
+
+    addImageMessage(image, role) {
+      this.updateMessages({
+        role: role,
+        content: image,
+        timestamp: Date.now(),
+        messageId: 2000 + this.messages.length
       });
     },
 
@@ -247,6 +253,7 @@ export default {
       if (this.attachedImages.length > 0) {
         for (const image of this.attachedImages) {
           this.client.sendImage(image.url);
+          this.addImageMessage(image.base64, 'user');
           this.addSystemMessage(`Sent image: ${image.url}`);
         }
         this.attachedImages = [];
