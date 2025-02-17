@@ -5,6 +5,9 @@
         <img :src="image.base64" alt="Pasted image" />
         <button class="delete-button" @click="deleteImage(image)">×</button>
       </div>
+      <div v-if="loadingImage" class="image-preview">
+        <img :src="loadingImage.base64" alt="Loading image" />
+      </div>
       <div class="text-input-container">
         <input 
           type="text" 
@@ -48,7 +51,7 @@ export default {
   data() {
     return {
       textMessage: '',
-      image: null,
+      loadingImage: null
     }
   },
   mounted() {
@@ -61,7 +64,7 @@ export default {
     sendMessage() {
       this.$emit('send-message', this.textMessage);
       this.textMessage = '';
-      this.image = null;
+      this.loadingImage = null;
     },
 
     handlePaste(event) {
@@ -79,7 +82,12 @@ export default {
             const imageBase64 = e.target.result;
             const imagePng = decodeBase64Image(imageBase64);
             const imageName = uuidv4();
+            this.showLoadingImage({
+              base64: imageBase64,
+              name: imageName
+            });
             const imageUrl = await uploadImage(imagePng, imageName);
+            this.showLoadingImage(null);
             const imageData = {
               base64: imageBase64,
               url: imageUrl,
@@ -96,6 +104,10 @@ export default {
     
     deleteImage(image) {
       this.$emit('image-deleted', image);
+    },
+
+    showLoadingImage(image) {
+      this.loadingImage = image;
     }
   }
 }
