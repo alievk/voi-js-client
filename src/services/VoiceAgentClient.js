@@ -14,7 +14,7 @@ export class VoiceAgentClient {
         this.onMessage = null;
     }
   
-    async connect(agentName, agentConfig = null, streamUserStt = true, 
+    async connect(agentName, agentConfig = null, streamUserStt = true, finalSttCorrection = true, 
       streamOutputAudio = true, initGreeting = true) {
         if (!agentName) {
             throw new Error('agentName is required');
@@ -42,6 +42,7 @@ export class VoiceAgentClient {
               agent_name: agentName,
               agent_config: agentConfig,
               stream_user_stt: streamUserStt,
+              final_stt_correction: finalSttCorrection,
               stream_output_audio: streamOutputAudio,
               init_greeting: initGreeting
             });
@@ -91,7 +92,7 @@ export class VoiceAgentClient {
 
     sendTextMessage = (message) => {
       this._sendJson({
-          type: 'manual_text',
+          type: 'text',
           content: message
       });
     }

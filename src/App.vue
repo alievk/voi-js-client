@@ -23,6 +23,8 @@
           @start-recording="startRecordingUserAudio"
           @stop-recording="stopRecordingUserAudio"
           @send-message="sendMessage"
+          @image-uploaded="imageUploaded"
+          @image-deleted="imageDeleted"
           @input-mode-change="mode => inputMode = mode"
           @system-message="addSystemMessage"
           @clean-messages="cleanMessages"
@@ -72,6 +74,7 @@ export default {
 
     return {
       messages: [],
+      attachedImages: [],
       systemMessages: [],
       llmResponse: '',
       client: new VoiceAgentClient(
@@ -170,7 +173,7 @@ export default {
 
     async connect(agentName) {
       this.audioStreamPlayer.connect();
-      await this.client.connect(agentName, this.agents[agentName]);
+      await this.client.connect(agentName, this.agents[agentName], false, true);
     },
 
     disconnect() {
@@ -202,6 +205,7 @@ export default {
     async stopRecordingUserAudio() {
       if (!this.isRecordingUserAudio) return;
       const userAudio = await this.audioRecorder.end();
+      this.sendAttachments();
       this.client.createResponse();
       this.isRecordingUserAudio = false;
       this.addAudioMessage(userAudio, 'user');
@@ -220,14 +224,30 @@ export default {
       });
     },
 
-    sendMessage(text, image) {
-      if (image) {
-        this.client.sendImage(image.url);
-        this.$emit('system-message', `Sent image: ${image.url}`);
-      }
+    imageUploaded(image) {
+      this.attachedImages.push(image);
+    },
+
+    imageDeleted(image) {
+      this.attachedImages = this.attachedImages.filter(i => i.name !== image.name);
+    },
+
+    sendMessage(text) {
       if (text) {
         this.client.sendTextMessage(text);
         this.$emit('system-message', `Sent text message: ${text}`);
+      }
+      this.sendAttachments();
+      this.client.createResponse();
+    },
+
+    sendAttachments() {
+      if (this.attachedImages.length > 0) {
+        for (const image of this.attachedImages) {
+          this.client.sendImage(image.url);
+          this.$emit('system-message', `Sent image: ${image.url}`);
+        }
+        this.attachedImages = [];
       }
     },
 

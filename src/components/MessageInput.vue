@@ -1,8 +1,8 @@
 <template>
-  <div class="audio-streamer" ref="audioStreamer" @paste="handlePaste">
+  <div class="audio-streamer" ref="audioStreamer">
     <div class="input-wrapper">
       <div v-if="image" class="image-preview">
-        <img :src="image.data" alt="Pasted image" />
+        <img :src="image.base64" alt="Pasted image" />
         <button class="delete-button" @click="deleteImage">×</button>
       </div>
       <div class="text-input-container">
@@ -11,7 +11,6 @@
           v-model="textMessage" 
           placeholder="Type a message..."
           @keyup.enter="sendMessage"
-          @paste="handlePaste"
         >
         <button 
           @click="sendMessage" 
@@ -32,6 +31,7 @@
 </template>
 
 <script>
+import { v4 as uuidv4 } from 'uuid';
 import MicButton from './MicButton.vue'
 import { uploadImage, decodeBase64Image } from '../services/AWSImageUploader.js';
 
@@ -57,9 +57,7 @@ export default {
   },
   methods: {
     sendMessage() {
-      const text = this.textMessage.trim();
-      if (!text && !this.image) return;
-      this.$emit('send-message', text, this.image);
+      this.$emit('send-message', this.textMessage);
       this.textMessage = '';
       this.image = null;
     },
@@ -75,14 +73,16 @@ export default {
           
           const reader = new FileReader();
           reader.onload = async (e) => {
-            const imageData = e.target.result;
-            const imageBuffer = decodeBase64Image(imageData);
-            const imageUrl = await uploadImage(imageBuffer, "voi-js-client-image.png");
+            const imageBase64 = e.target.result;
+            const imagePng = decodeBase64Image(imageBase64);
+            const imageName = uuidv4();
+            const imageUrl = await uploadImage(imagePng, imageName);
             this.image = {
-              data: imageData,
+              base64: imageBase64,
               url: imageUrl,
-              name: "voi-js-client-image.png"
+              name: imageName
             }
+            this.$emit('image-uploaded', this.image);
           };
           reader.onerror = (e) => console.error('FileReader error:', e);
           reader.readAsDataURL(file);
@@ -93,6 +93,7 @@ export default {
     
     deleteImage() {
       this.image = null;
+      this.$emit('image-deleted', this.image);
     }
   }
 }
