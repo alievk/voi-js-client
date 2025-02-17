@@ -1,9 +1,9 @@
 <template>
   <div class="audio-streamer" ref="audioStreamer">
     <div class="input-wrapper">
-      <div v-if="image" class="image-preview">
+      <div v-for="image in attachedImages" :key="image.name" class="image-preview">
         <img :src="image.base64" alt="Pasted image" />
-        <button class="delete-button" @click="deleteImage">×</button>
+        <button class="delete-button" @click="deleteImage(image)">×</button>
       </div>
       <div class="text-input-container">
         <input 
@@ -11,11 +11,12 @@
           v-model="textMessage" 
           placeholder="Type a message..."
           @keyup.enter="sendMessage"
+          :disabled="!(agentState == 'ready')"
         >
         <button 
           @click="sendMessage" 
           :class="['button', 'send-button']"
-          :disabled="!(agentState == 'ready' && (textMessage.trim().length > 0 || image))"
+          :disabled="!(agentState == 'ready')"
         >
           Send
         </button>
@@ -41,7 +42,8 @@ export default {
   },
   props: {
     isRecordingUserAudio: Boolean,
-    agentState: String
+    agentState: String,
+    attachedImages: Array
   },
   data() {
     return {
@@ -63,6 +65,7 @@ export default {
     },
 
     handlePaste(event) {
+      if (this.attachedImages.length >= 3) return;
       const items = event.clipboardData?.items;
       if (!items) return;
       
@@ -77,12 +80,12 @@ export default {
             const imagePng = decodeBase64Image(imageBase64);
             const imageName = uuidv4();
             const imageUrl = await uploadImage(imagePng, imageName);
-            this.image = {
+            const imageData = {
               base64: imageBase64,
               url: imageUrl,
               name: imageName
             }
-            this.$emit('image-uploaded', this.image);
+            this.$emit('image-uploaded', imageData);
           };
           reader.onerror = (e) => console.error('FileReader error:', e);
           reader.readAsDataURL(file);
@@ -91,9 +94,8 @@ export default {
       }
     },
     
-    deleteImage() {
-      this.image = null;
-      this.$emit('image-deleted', this.image);
+    deleteImage(image) {
+      this.$emit('image-deleted', image);
     }
   }
 }
@@ -103,9 +105,9 @@ export default {
 .audio-streamer {
   background-color: #ffffff;
   border-radius: 12px;
-  padding: 80px 20px 20px;
+  padding: 20px 20px 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 20px;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -115,6 +117,9 @@ export default {
   width: 100%;
   max-width: 500px;
   position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .text-input-container {
@@ -172,9 +177,7 @@ input {
 }
 
 .image-preview {
-  position: absolute;
-  bottom: 100%;
-  left: 12px;
+  position: relative;
   margin-bottom: 10px;
   width: 80px;
   height: 80px;

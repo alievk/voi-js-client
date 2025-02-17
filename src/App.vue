@@ -20,6 +20,7 @@
           :isRecordingUserAudio="isRecordingUserAudio"
           :inputMode="inputMode"
           :agentState="agentState"
+          :attachedImages="attachedImages"
           @start-recording="startRecordingUserAudio"
           @stop-recording="stopRecordingUserAudio"
           @send-message="sendMessage"
@@ -126,7 +127,7 @@ export default {
               this.updateMessages({
                 role: metadata.role,
                 content: item.text,
-                timestamp: metadata.time,
+                timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
                 messageId: metadata.id
               });
             }
@@ -134,6 +135,7 @@ export default {
         } else if (metadata.type === 'llm_response') {
           this.llmResponse = metadata.content;
         }
+        this.addSystemMessage(`Received message with metadata: ${JSON.stringify(metadata)}`);
       };
     },
 
@@ -173,7 +175,7 @@ export default {
 
     async connect(agentName) {
       this.audioStreamPlayer.connect();
-      await this.client.connect(agentName, this.agents[agentName], false, true);
+      await this.client.connect(agentName, this.agents[agentName]);
     },
 
     disconnect() {
@@ -235,7 +237,7 @@ export default {
     sendMessage(text) {
       if (text) {
         this.client.sendTextMessage(text);
-        this.$emit('system-message', `Sent text message: ${text}`);
+        this.addSystemMessage(`Sent text message: ${text}`);
       }
       this.sendAttachments();
       this.client.createResponse();
@@ -245,7 +247,7 @@ export default {
       if (this.attachedImages.length > 0) {
         for (const image of this.attachedImages) {
           this.client.sendImage(image.url);
-          this.$emit('system-message', `Sent image: ${image.url}`);
+          this.addSystemMessage(`Sent image: ${image.url}`);
         }
         this.attachedImages = [];
       }
