@@ -205,8 +205,11 @@ export class VoiceAgentClient {
               if (this.onMessage) {
                 this.onMessage(metadata, payload);
               }
+              this._onStatus('ready');
             } else if (metadata.type === 'init_done') {
               this._onStatus('ready');
+            } else if (metadata.type === 'response_created') {
+              this._onStatus('busy');
             } else if (metadata.type === 'error') {
               this._onError(`Server error: ${metadata.error}`);
             } else {

@@ -3,6 +3,9 @@
     <div v-if="agentState === 'disconnected'" class="status-message">
       Here will appear your conversation
     </div>
+    <div v-else-if="agentState === 'activating'" class="status-message">
+      Activating...
+    </div>
     <div v-for="message in messages" :key="message.timestamp">
       <div :class="['message-meta', message.role]">
         {{ formatTimestamp(message.timestamp) }} • {{ message.role }}
@@ -14,6 +17,9 @@
         <img v-else-if="isImageMessage(message.content)" :src="message.content" class="message-image">
         <span v-else class="content">{{ message.content }}</span>
       </div>
+    </div>
+    <div v-if="agentState === 'busy'" class="message-bubble assistant">
+      <span class="content">...</span>
     </div>
   </div>
 </template>
