@@ -258,6 +258,7 @@ export default {
       }
       this.sendAttachments();
       this.client.createResponse();
+      this.sendUserInterrupt();
     },
 
     sendAttachments() {
