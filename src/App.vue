@@ -23,6 +23,7 @@
           :attachedImages="attachedImages"
           @start-recording="startRecordingUserAudio"
           @stop-recording="stopRecordingUserAudio"
+          @stop-assistant-audio="stopAssistantAudio"
           @send-message="sendMessage"
           @image-uploaded="imageUploaded"
           @image-deleted="imageDeleted"
@@ -84,8 +85,8 @@ export default {
         process.env.VUE_APP_WS_TOKEN
       ),
       agentState: 'disconnected',
-      audioStreamPlayer: new WavStreamPlayer({ sampleRate: 24000 }),
-      audioRecorder: new WavRecorder({ sampleRate: 16000 }),
+      audioStreamPlayer: null,
+      audioRecorder: null,
       isRecordingUserAudio: false,
       inputMode: 'audio',
       agents: {},
@@ -94,6 +95,7 @@ export default {
   },
 
   mounted() {
+    this.audioRecorder = new WavRecorder({ sampleRate: 16000 });
     this.checkMicrophonePermission();
     this.agents = this.fetchAgents();
     this.setupEventListeners();
@@ -174,12 +176,16 @@ export default {
     },
 
     async connect(agentName) {
+      this.audioStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 });
       this.audioStreamPlayer.connect();
       await this.client.connect(agentName, this.agents[agentName]);
     },
 
     disconnect() {
-      this.audioStreamPlayer.interrupt();
+      if (this.audioStreamPlayer) {
+        this.audioStreamPlayer.interrupt();
+        this.audioStreamPlayer = null;
+      }
       this.client.disconnect();
     },
 
@@ -212,6 +218,11 @@ export default {
       this.isRecordingUserAudio = false;
       this.addAudioMessage(userAudio, 'user');
       this.addSystemMessage('Stopped recording user audio');
+    },
+
+    async stopAssistantAudio() {
+      this.addSystemMessage('Stopping assistant audio');
+      this.sendUserInterrupt();
     },
 
     addAudioMessage(audio, role) {

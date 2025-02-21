@@ -29,6 +29,13 @@
           @start-recording="$emit('start-recording')"
           @stop-recording="$emit('stop-recording')"
         />
+        <button 
+          class="mute-button"
+          :disabled="!(agentState == 'ready')"
+          @click="$emit('stop-assistant-audio')"
+        >
+          <img src="/mute.svg" alt="Mute" width="24" height="24">
+        </button>
       </div>
     </div>
   </div>
@@ -186,6 +193,28 @@ input {
 .send-button:active {
   background-color: #2ecc71;
   color: white;
+}
+
+.mute-button {
+  padding: 8px;
+  cursor: pointer;
+  border: none;
+  border-radius: 20px;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(1.2);
+  
+  &:hover {
+    background-color: #f3f4f6;
+    transform: scale(1.25);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .image-preview {
