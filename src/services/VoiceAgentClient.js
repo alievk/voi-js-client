@@ -199,25 +199,28 @@ export class VoiceAgentClient {
     }
 
     _socketMessageHandler = async (event) => {
-        try {
-            const { metadata, payload } = await this._parseMessage(event.data);
-            if (metadata.type === 'message' || metadata.type === 'audio' || metadata.type === 'llm_response') {
-              if (this.onMessage) {
-                this.onMessage(metadata, payload);
-              }
-              this._onStatus('ready');
-            } else if (metadata.type === 'init_done') {
-              this._onStatus('ready');
-            } else if (metadata.type === 'response_created') {
-              this._onStatus('busy');
-            } else if (metadata.type === 'error') {
-              this._onError(`Server error: ${metadata.error}`);
-            } else {
-              this._onError(`Unknown message type: ${metadata.type}`);
+      try {
+          const { metadata, payload } = await this._parseMessage(event.data);
+          console.log('socketMessageHandler', metadata);
+          if (metadata.type === 'message' || metadata.type === 'audio' || metadata.type === 'llm_response') {
+            if (this.onMessage) {
+              this.onMessage(metadata, payload);
             }
-        } catch (error) {
-            this._onError(`Failed to process message: ${error.message}`);
-        }
+            if (metadata.type === 'message' && metadata.role === 'assistant') {
+              this._onStatus('ready');
+            }
+          } else if (metadata.type === 'init_done') {
+            this._onStatus('ready');
+          } else if (metadata.type === 'response_created') {
+            this._onStatus('busy');
+          } else if (metadata.type === 'error') {
+            this._onError(`Server error: ${metadata.error}`);
+          } else {
+            this._onError(`Unknown message type: ${metadata.type}`);
+          }
+      } catch (error) {
+          this._onError(`Failed to process message: ${error.message}`);
+      }
     }
 
     _onStatus(status) {
