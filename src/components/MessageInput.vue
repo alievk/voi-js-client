@@ -1,31 +1,50 @@
 <template>
   <div class="audio-streamer" ref="audioStreamer">
-    <div class="text-input-container">
-      <input 
-        type="text" 
-        v-model="textMessage" 
-        placeholder="Type a message..."
-        @keyup.enter="sendTextMessage"
-      >
-      <button 
-        @click="sendTextMessage" 
-        :class="['button', 'send-button']"
-        :disabled="agentState !== 'ready'"
-      >
-        Send
-      </button>
-      <MicButton 
-        :is-recording="isRecordingUserAudio"
-        :enabled="agentState === 'ready'"
-        @start-recording="$emit('start-recording')"
-        @stop-recording="$emit('stop-recording')"
-      />
+    <div class="input-wrapper">
+      <div v-for="image in attachedImages" :key="image.name" class="image-preview">
+        <img :src="image.base64" alt="Pasted image" />
+        <button class="delete-button" @click="deleteImage(image)">×</button>
+      </div>
+      <div v-if="loadingImage" class="image-preview">
+        <img :src="loadingImage.base64" alt="Loading image" />
+      </div>
+      <div class="text-input-container">
+        <input 
+          type="text" 
+          v-model="textMessage" 
+          placeholder="Type a message..."
+          @keyup.enter="sendMessage"
+          :disabled="!(agentState == 'ready')"
+        >
+        <button 
+          @click="sendMessage" 
+          :class="['button', 'send-button']"
+          :disabled="!(agentState == 'ready')"
+        >
+          Send
+        </button>
+        <MicButton 
+          :is-recording="isRecordingUserAudio"
+          :enabled="agentState === 'ready'"
+          @start-recording="$emit('start-recording')"
+          @stop-recording="$emit('stop-recording')"
+        />
+        <button 
+          class="mute-button"
+          :disabled="!(agentState == 'ready')"
+          @click="$emit('stop-assistant-audio')"
+        >
+          <img src="/mute.svg" alt="Mute" width="24" height="24">
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import { v4 as uuidv4 } from 'uuid';
 import MicButton from './MicButton.vue'
+import { uploadImage, decodeBase64Image } from '../services/AWSImageUploader.js';
 
 export default {
   components: {
@@ -33,18 +52,69 @@ export default {
   },
   props: {
     isRecordingUserAudio: Boolean,
-    agentState: String
+    agentState: String,
+    attachedImages: Array
   },
   data() {
     return {
-      textMessage: ''
+      textMessage: '',
+      loadingImage: null
     }
   },
+  mounted() {
+    window.addEventListener('paste', this.handlePaste);
+  },
+  beforeDestroy() {
+    window.removeEventListener('paste', this.handlePaste);
+  },
   methods: {
-    sendTextMessage() {
-      if (!this.textMessage.trim()) return;
-      this.$emit('send-text', this.textMessage.trim());
+    sendMessage() {
+      this.$emit('send-message', this.textMessage);
       this.textMessage = '';
+      this.loadingImage = null;
+    },
+
+    handlePaste(event) {
+      if (this.attachedImages.length >= 3) return;
+      const items = event.clipboardData?.items;
+      if (!items) return;
+      
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const imageBase64 = e.target.result;
+            const imagePng = decodeBase64Image(imageBase64);
+            const imageName = uuidv4();
+            this.showLoadingImage({
+              base64: imageBase64,
+              name: imageName
+            });
+            const imageUrl = await uploadImage(imagePng, imageName);
+            this.showLoadingImage(null);
+            const imageData = {
+              base64: imageBase64,
+              url: imageUrl,
+              name: imageName
+            }
+            this.$emit('image-uploaded', imageData);
+          };
+          reader.onerror = (e) => console.error('FileReader error:', e);
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    },
+    
+    deleteImage(image) {
+      this.$emit('image-deleted', image);
+    },
+
+    showLoadingImage(image) {
+      this.loadingImage = image;
     }
   }
 }
@@ -54,18 +124,27 @@ export default {
 .audio-streamer {
   background-color: #ffffff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 20px 20px 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 20px;
+  margin-top: 10px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.input-wrapper {
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .text-input-container {
   display: flex;
   gap: 8px;
   width: 100%;
-  max-width: 500px;
   align-items: center;
 }
 
@@ -114,5 +193,66 @@ input {
 .send-button:active {
   background-color: #2ecc71;
   color: white;
+}
+
+.mute-button {
+  padding: 8px;
+  cursor: pointer;
+  border: none;
+  border-radius: 20px;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(1.2);
+  
+  &:hover {
+    background-color: #f3f4f6;
+    transform: scale(1.25);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.image-preview {
+  position: relative;
+  margin-bottom: 10px;
+  width: 80px;
+  height: 80px;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+}
+
+.delete-button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff4444;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+
+.delete-button:hover {
+  background: #ff0000;
 }
 </style>

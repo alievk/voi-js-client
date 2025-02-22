@@ -3,16 +3,23 @@
     <div v-if="agentState === 'disconnected'" class="status-message">
       Here will appear your conversation
     </div>
-    <div v-for="message in messages" :key="message.messageId">
+    <div v-else-if="agentState === 'activating'" class="status-message">
+      Activating...
+    </div>
+    <div v-for="message in messages" :key="message.timestamp">
       <div :class="['message-meta', message.role]">
-        {{ message.timestamp }} • {{ message.role }}
+        {{ formatTimestamp(message.timestamp) }} • {{ message.role }}
       </div>
-      <div :class="['message-bubble', message.role, isAudioMessage(message.content) ? 'audio-message' : '']">
+      <div :class="['message-bubble', message.role, isAudioMessage(message.content) ? 'audio-message' : isImageMessage(message.content) ? 'image-message' : '']">
         <audio v-if="isAudioMessage(message.content)" controls>
           <source :src="message.content" type="audio/wav">
         </audio>
+        <img v-else-if="isImageMessage(message.content)" :src="message.content" class="message-image">
         <span v-else class="content">{{ message.content }}</span>
       </div>
+    </div>
+    <div v-if="agentState === 'busy'" class="message-bubble assistant">
+      <span class="content">...</span>
     </div>
   </div>
 </template>
@@ -30,12 +37,18 @@ export default {
     isAudioMessage(content) {
       return content.startsWith('blob:') || content.startsWith('http');
     },
+    isImageMessage(content) {
+      return content.startsWith('data:image');
+    },
     scrollToBottom() {
       this.$nextTick(() => {
         if (this.$refs.conversationLog) {
           this.$refs.conversationLog.scrollTop = this.$refs.conversationLog.scrollHeight;
         }
       });
+    },
+    formatTimestamp(timestamp) {
+      return new Date(timestamp).toLocaleTimeString('en-US', { hour12: false });
     }
   },
   watch: {
@@ -85,6 +98,12 @@ export default {
     background-color: transparent;
     box-shadow: none;
   }
+  
+  &.image-message {
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
 }
 
 .timestamp {
@@ -114,5 +133,13 @@ export default {
 
 .message-meta.user {
   text-align: right;
+}
+
+.message-image {
+  max-width: 200px;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 </style>

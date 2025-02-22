@@ -14,7 +14,7 @@ export class VoiceAgentClient {
         this.onMessage = null;
     }
   
-    async connect(agentName, agentConfig = null, streamUserStt = true, 
+    async connect(agentName, agentConfig = null, streamUserStt = true, finalSttCorrection = true, 
       streamOutputAudio = true, initGreeting = true) {
         if (!agentName) {
             throw new Error('agentName is required');
@@ -42,6 +42,7 @@ export class VoiceAgentClient {
               agent_name: agentName,
               agent_config: agentConfig,
               stream_user_stt: streamUserStt,
+              final_stt_correction: finalSttCorrection,
               stream_output_audio: streamOutputAudio,
               init_greeting: initGreeting
             });
@@ -82,16 +83,32 @@ export class VoiceAgentClient {
     }
 
     sendAudioChunk(chunk) {
-      this._send(chunk);
+      const metadata = {
+        type: 'audio'
+      };
+      const blob = this._serializeMessage(metadata, chunk);
+      this._send(blob);
     }
 
     sendTextMessage = (message) => {
-      if (!message) {
-        throw new Error('Message is required');
-      }
       this._sendJson({
-          type: 'manual_text',
+          type: 'text',
           content: message
+      });
+    }
+
+    sendBlob = (blob, type) => {
+      const metadata = {
+        type: type
+      };
+      const data = this._serializeMessage(metadata, blob);
+      this._send(data);
+    }
+
+    sendImage = (imageUrl) => {
+      this._sendJson({
+          type: 'image_url',
+          image_url: imageUrl
       });
     }
     
@@ -154,30 +171,45 @@ export class VoiceAgentClient {
   
     _sendJson = (data) => {
       try {
-        this._send(JSON.stringify(data));
+        const blob = this._serializeMessage(data);
+        this._send(blob);
       } catch (error) {
         this._onError(`Failed to stringify message: ${error.message}`);
       }
     };
 
-    /**
-     * Handles incoming socket messages
-     * @private
-     * @param {MessageEvent} event - The WebSocket message event
-     */
+    _parseMessage = async (data) => {
+        const arrayBuffer = await data.arrayBuffer();
+        const dataView = new DataView(arrayBuffer);
+        const metadataLength = dataView.getUint32(0);
+        const metadata = JSON.parse(new TextDecoder().decode(arrayBuffer.slice(4, 4 + metadataLength)));
+        const payload = arrayBuffer.slice(4 + metadataLength);
+        return { metadata, payload };
+    }
+
+    _serializeMessage = (metadata, payload) => {
+      const metadataBytes = new TextEncoder().encode(JSON.stringify(metadata));
+      const metadataLengthBuffer = new ArrayBuffer(4);
+      new DataView(metadataLengthBuffer).setUint32(0, metadataBytes.length);
+      return new Blob([
+          metadataLengthBuffer,
+          metadataBytes,
+          payload
+      ]);
+    }
+
     _socketMessageHandler = async (event) => {
         try {
-            const arrayBuffer = await event.data.arrayBuffer();
-            const dataView = new DataView(arrayBuffer);
-            const metadataLength = dataView.getUint32(0);
-            const metadata = JSON.parse(new TextDecoder().decode(arrayBuffer.slice(4, 4 + metadataLength)));
-            const payload = arrayBuffer.slice(4 + metadataLength);
+            const { metadata, payload } = await this._parseMessage(event.data);
             if (metadata.type === 'message' || metadata.type === 'audio' || metadata.type === 'llm_response') {
               if (this.onMessage) {
                 this.onMessage(metadata, payload);
               }
+              this._onStatus('ready');
             } else if (metadata.type === 'init_done') {
               this._onStatus('ready');
+            } else if (metadata.type === 'response_created') {
+              this._onStatus('busy');
             } else if (metadata.type === 'error') {
               this._onError(`Server error: ${metadata.error}`);
             } else {
@@ -225,5 +257,4 @@ export class VoiceAgentClient {
       };
       return codes[code] || `Unknown code: ${code}`;
     };
-  }
-  
+}

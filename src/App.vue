@@ -20,9 +20,13 @@
           :isRecordingUserAudio="isRecordingUserAudio"
           :inputMode="inputMode"
           :agentState="agentState"
+          :attachedImages="attachedImages"
           @start-recording="startRecordingUserAudio"
           @stop-recording="stopRecordingUserAudio"
-          @send-text="sendTextMessage"
+          @stop-assistant-audio="stopAssistantAudio"
+          @send-message="sendMessage"
+          @image-uploaded="imageUploaded"
+          @image-deleted="imageDeleted"
           @input-mode-change="mode => inputMode = mode"
           @system-message="addSystemMessage"
           @clean-messages="cleanMessages"
@@ -72,6 +76,7 @@ export default {
 
     return {
       messages: [],
+      attachedImages: [],
       systemMessages: [],
       llmResponse: '',
       client: new VoiceAgentClient(
@@ -80,8 +85,8 @@ export default {
         process.env.VUE_APP_WS_TOKEN
       ),
       agentState: 'disconnected',
-      audioStreamPlayer: new WavStreamPlayer({ sampleRate: 24000 }),
-      audioRecorder: new WavRecorder({ sampleRate: 16000 }),
+      audioStreamPlayer: null,
+      audioRecorder: null,
       isRecordingUserAudio: false,
       inputMode: 'audio',
       agents: {},
@@ -90,6 +95,7 @@ export default {
   },
 
   mounted() {
+    this.audioRecorder = new WavRecorder({ sampleRate: 16000 });
     this.checkMicrophonePermission();
     this.agents = this.fetchAgents();
     this.setupEventListeners();
@@ -118,15 +124,20 @@ export default {
         if (metadata.type === 'audio') {
           this.audioStreamPlayer.add16BitPCM(payload, metadata.speech_id);
         } else if (metadata.type === 'message') {
-          this.updateMessages({
-            role: metadata.role,
-            content: metadata.content,
-            timestamp: metadata.time,
-            messageId: metadata.id
-          });
+          for (const item of metadata.content) {
+            if (item.type === 'text') {
+              this.updateMessages({
+                role: metadata.role,
+                content: item.text,
+                timestamp: Date.now(),
+                messageId: metadata.id
+              });
+            }
+          }
         } else if (metadata.type === 'llm_response') {
           this.llmResponse = metadata.content;
         }
+        this.addSystemMessage(`Received message with metadata: ${JSON.stringify(metadata)}`);
       };
     },
 
@@ -165,12 +176,16 @@ export default {
     },
 
     async connect(agentName) {
+      this.audioStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 });
       this.audioStreamPlayer.connect();
       await this.client.connect(agentName, this.agents[agentName]);
     },
 
     disconnect() {
-      this.audioStreamPlayer.interrupt();
+      if (this.audioStreamPlayer) {
+        this.audioStreamPlayer.interrupt();
+        this.audioStreamPlayer = null;
+      }
       this.client.disconnect();
     },
 
@@ -198,29 +213,63 @@ export default {
     async stopRecordingUserAudio() {
       if (!this.isRecordingUserAudio) return;
       const userAudio = await this.audioRecorder.end();
+      this.sendAttachments();
       this.client.createResponse();
       this.isRecordingUserAudio = false;
       this.addAudioMessage(userAudio, 'user');
       this.addSystemMessage('Stopped recording user audio');
     },
 
+    async stopAssistantAudio() {
+      this.addSystemMessage('Stopping assistant audio');
+      this.sendUserInterrupt();
+    },
+
     addAudioMessage(audio, role) {
-      const lastUserMessage = this.messages.findLast(m => m.role === role);
-      if (!lastUserMessage) return;
-      const messageId = lastUserMessage.messageId + (role === 'assistant' ? 1000 : 2000);
       this.updateMessages({
         role: role,
         content: audio.url,
-        timestamp: lastUserMessage.timestamp,
-        messageId: messageId
+        timestamp: Date.now(),
+        messageId: 1000 + this.messages.length
       });
     },
 
-    sendTextMessage(message) {
-      const textMessage = message.trim();
-      if (!textMessage) return;
-      this.client.sendTextMessage(textMessage);
-      this.$emit('system-message', `Sent text message: ${textMessage}`);
+    addImageMessage(image, role) {
+      this.updateMessages({
+        role: role,
+        content: image,
+        timestamp: Date.now(),
+        messageId: 2000 + this.messages.length
+      });
+    },
+
+    imageUploaded(image) {
+      this.attachedImages.push(image);
+    },
+
+    imageDeleted(image) {
+      this.attachedImages = this.attachedImages.filter(i => i.name !== image.name);
+    },
+
+    sendMessage(text) {
+      if (text) {
+        this.client.sendTextMessage(text);
+        this.addSystemMessage(`Sent text message: ${text}`);
+      }
+      this.sendAttachments();
+      this.client.createResponse();
+      this.sendUserInterrupt();
+    },
+
+    sendAttachments() {
+      if (this.attachedImages.length > 0) {
+        for (const image of this.attachedImages) {
+          this.client.sendImage(image.url);
+          this.addImageMessage(image.base64, 'user');
+          this.addSystemMessage(`Sent image: ${image.url}`);
+        }
+        this.attachedImages = [];
+      }
     },
 
     async sendUserInterrupt() {
