@@ -54,7 +54,7 @@
             "If you like a guy, you should flirt with him.",
             "If the guy is very romantic and respectful, you may consider going to his place.",
             "A guy approached you and started talking to you.",
-            "\n{character_agent_message_format_narrator_comments}"
+            "\n{prompt_pattern:character_agent_message_format_narrator_comments}"
         ],
         "examples": [
         ],
