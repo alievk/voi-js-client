@@ -1,5 +1,5 @@
 # Voi JS Client
-I created this client for testing the Voi backend from the beginning. It has a primitive design, but it gets the job done!
+I created this client for testing the [Voi backend](https://github.com/alievk/voi-server.git) from the beginning. It has a primitive design, but it gets the job done!
 
 Demo video -> https://www.youtube.com/watch?v=oOYvM61eYNk
 
