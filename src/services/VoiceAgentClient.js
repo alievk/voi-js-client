@@ -201,18 +201,16 @@ export class VoiceAgentClient {
     _socketMessageHandler = async (event) => {
       try {
           const { metadata, payload } = await this._parseMessage(event.data);
-          console.log('socketMessageHandler', metadata);
           if (metadata.type === 'message' || metadata.type === 'audio' || metadata.type === 'llm_response') {
             if (this.onMessage) {
               this.onMessage(metadata, payload);
             }
-            if (metadata.type === 'message' && metadata.role === 'assistant') {
+          } else if (metadata.type === 'status') {
+            if (metadata.status === 'response_created') {
+              this._onStatus('busy');
+            } else if (metadata.status === 'init_done' || metadata.status === 'response_cancelled' || metadata.status === 'response_done') {
               this._onStatus('ready');
             }
-          } else if (metadata.type === 'init_done') {
-            this._onStatus('ready');
-          } else if (metadata.type === 'response_created') {
-            this._onStatus('busy');
           } else if (metadata.type === 'error') {
             this._onError(`Server error: ${metadata.error}`);
           } else {
