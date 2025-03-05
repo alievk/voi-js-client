@@ -1,3 +1,12 @@
+/*
+Voice Agent States:
+- disconnected: Initial state or when connection is closed. No active WebSocket connection.
+- connected: WebSocket connection established but agent not initialized yet.
+- activating: Agent initialization in progress (loading models, configs).
+- ready: Agent fully initialized and ready to process user input.
+- busy: Agent is currently processing/generating a response.
+*/
+
 export class VoiceAgentClient {
     constructor(hostname, port, token) {
         if (!hostname || !port || !token) {
@@ -14,8 +23,14 @@ export class VoiceAgentClient {
         this.onMessage = null;
     }
   
-    async connect(agentName, agentConfig = null, streamUserStt = true, finalSttCorrection = true, 
-      streamOutputAudio = true, initGreeting = true) {
+    async connect(agentName, {
+      agentConfig = null, 
+      mode = 'chat', 
+      streamUserStt = true, 
+      finalSttCorrection = true, 
+      streamOutputAudio = true, 
+      initGreeting = true
+    }) {
         if (!agentName) {
             throw new Error('agentName is required');
         }
@@ -41,6 +56,7 @@ export class VoiceAgentClient {
               type: 'init',
               agent_name: agentName,
               agent_config: agentConfig,
+              mode: mode,
               stream_user_stt: streamUserStt,
               final_stt_correction: finalSttCorrection,
               stream_output_audio: streamOutputAudio,

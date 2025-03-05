@@ -18,23 +18,23 @@
         
         <MessageInput 
           :isRecordingUserAudio="isRecordingUserAudio"
-          :inputMode="inputMode"
           :agentState="agentState"
           :attachedImages="attachedImages"
+          :mode="mode"
           @start-recording="startRecordingUserAudio"
           @stop-recording="stopRecordingUserAudio"
           @stop-assistant-audio="stopAssistantAudio"
           @send-message="sendMessage"
           @image-uploaded="imageUploaded"
           @image-deleted="imageDeleted"
-          @input-mode-change="mode => inputMode = mode"
           @system-message="addSystemMessage"
           @clean-messages="cleanMessages"
         />
       </div>
 
       <Sidebar 
-        @activate-agent="handleActivateAgent"
+        @start-chat="handleStartChat"
+        @start-call="handleStartCall"
         @send-prompt="handleSendPrompt"
         :systemMessages="systemMessages"
         :agents="agents"
@@ -85,10 +85,10 @@ export default {
         process.env.VUE_APP_WS_TOKEN
       ),
       agentState: 'disconnected',
+      mode: 'chat',
       audioStreamPlayer: null,
       audioRecorder: null,
       isRecordingUserAudio: false,
-      inputMode: 'audio',
       agents: {},
       microphonePermissionGranted: false
     }
@@ -169,16 +169,13 @@ export default {
       });
     },
 
-    handleActivateAgent(agentName) {
-      this.disconnect();
-      this.cleanMessages();
-      this.connect(agentName);
-    },
-
-    async connect(agentName) {
+    async connect(agentName, mode='chat') {
       this.audioStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 });
       this.audioStreamPlayer.connect();
-      await this.client.connect(agentName, this.agents[agentName]);
+      await this.client.connect(agentName, { agentConfig: this.agents[agentName], mode: mode });
+      if (mode === 'call') {
+        this.startRecordingUserAudio();
+      }
     },
 
     disconnect() {
@@ -186,13 +183,16 @@ export default {
         this.audioStreamPlayer.interrupt();
         this.audioStreamPlayer = null;
       }
+      this.stopRecordingUserAudio();
       this.client.disconnect();
     },
 
     async startRecordingUserAudio() {
       if (this.isRecordingUserAudio) return;
       try {
-        await this.sendUserInterrupt();
+        if (this.mode === 'chat') {
+          await this.sendUserInterrupt();
+        }
 
         await this.audioRecorder.begin();
         await this.audioRecorder.record(
@@ -213,8 +213,10 @@ export default {
     async stopRecordingUserAudio() {
       if (!this.isRecordingUserAudio) return;
       const userAudio = await this.audioRecorder.end();
-      this.sendAttachments();
-      this.client.createResponse();
+      if (this.mode === 'chat') {
+        this.sendAttachments();
+        this.client.createResponse();
+      }
       this.isRecordingUserAudio = false;
       this.addAudioMessage(userAudio, 'user');
       this.addSystemMessage('Stopped recording user audio');
@@ -252,13 +254,15 @@ export default {
     },
 
     sendMessage(text) {
-      if (text) {
-        this.client.sendTextMessage(text);
-        this.addSystemMessage(`Sent text message: ${text}`);
-      }
       this.sendAttachments();
-      this.client.createResponse();
-      this.sendUserInterrupt();
+      if (this.mode === 'chat') {
+        if (text) {
+          this.client.sendTextMessage(text);
+          this.addSystemMessage(`Sent text message: ${text}`);
+        }
+        this.sendUserInterrupt();
+        this.client.createResponse();
+      }
     },
 
     sendAttachments() {
@@ -293,6 +297,22 @@ export default {
         data.prompt,
         [{'role': 'user', 'content': conversation}]
       );
+    },
+
+    handleStartChat(agentName) {
+      this.mode = 'chat';
+      this.addSystemMessage(`Starting chat with agent: ${agentName}`);
+      this.disconnect();
+      this.cleanMessages();
+      this.connect(agentName, 'chat');
+    },
+
+    handleStartCall(agentName) {
+      this.mode = 'call';
+      this.addSystemMessage(`Starting call with agent: ${agentName}`);
+      this.disconnect();
+      this.cleanMessages();
+      this.connect(agentName, 'call');
     },
 
     fetchAgents() {

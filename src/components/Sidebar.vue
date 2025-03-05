@@ -8,12 +8,22 @@
         </option>
       </select>
       <p>{{ agentDescription }}</p>
-      <button 
-        @click="activateAgent" 
-        :disabled="agentState === 'connected' || agentState === 'activating'"
-      >
-        {{ agentState === 'connected' || agentState === 'activating' ? 'Agent activating...' : 'Activate agent' }}
-      </button>
+      <div class="button-group">
+        <button 
+          @click="startChat" 
+          :disabled="agentState === 'connected' || agentState === 'activating'"
+          class="action-button"
+        >
+          Chat
+        </button>
+        <button 
+          @click="startCall"
+          :disabled="agentState === 'connected' || agentState === 'activating'"
+          class="action-button"
+        >
+          Call
+        </button>
+      </div>
       
       <hr class="delimiter" />
       
@@ -81,8 +91,8 @@ export default {
   },
 
   created() {
-    this.updateMetrics();
-    setInterval(this.updateMetrics, 5000);
+    //this.updateMetrics();
+    //setInterval(this.updateMetrics, 5000);
   },
 
   watch: {
@@ -107,8 +117,12 @@ export default {
       this.agentDescription = this.agents[this.selectedAgentKey].description;
     },
 
-    activateAgent() {
-      this.$emit('activate-agent', this.selectedAgentKey);
+    startChat() {
+      this.$emit('start-chat', this.selectedAgentKey);
+    },
+
+    startCall() {
+      this.$emit('start-call', this.selectedAgentKey);
     },
 
     handleSendPrompt(data) {
@@ -173,7 +187,14 @@ p {
   padding: 0 10px;
 }
 
-button {
+.button-group {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.action-button {
+  min-width: 100px;
   padding: 10px 20px;
   font-size: 16px;
   font-weight: 600;
@@ -185,28 +206,27 @@ button {
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
-  align-self: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-button:hover {
+.action-button:hover {
   background-color: #2980b9;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-button:active {
+.action-button:active {
   transform: translateY(0);
 }
 
-button:disabled {
+.action-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-button:disabled:hover {
+.action-button:disabled:hover {
   background-color: #3498db;
   transform: none;
   box-shadow: none;
