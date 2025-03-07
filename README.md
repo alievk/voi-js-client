@@ -6,6 +6,7 @@ Demo video -> https://www.youtube.com/watch?v=oOYvM61eYNk
 ## News
 
 - 02/22/2025 - Added user images support.
+- 03/07/2025 - Added call mode.
 
 ## Requirements
 This app is built on top of [Vue](https://vuejs.org/), but all you need is Docker on your machine.
