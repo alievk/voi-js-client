@@ -21,6 +21,7 @@ export class VoiceAgentClient {
         this.onStatus = null;
         this.onError = null;
         this.onMessage = null;
+        this.onUserInterrupt = null;
     }
   
     async connect(agentName, {
@@ -226,6 +227,8 @@ export class VoiceAgentClient {
               this._onStatus('busy');
             } else if (metadata.status === 'init_done' || metadata.status === 'response_cancelled' || metadata.status === 'response_done') {
               this._onStatus('ready');
+            } else if (metadata.status === 'user_interrupt') {
+              this._onUserInterrupt();
             }
           } else if (metadata.type === 'error') {
             this._onError(`Server error: ${metadata.error}`);
@@ -250,6 +253,12 @@ export class VoiceAgentClient {
     _onError = (error) => {
       if (this.onError) {
         this.onError(error);
+      }
+    }
+
+    _onUserInterrupt = () => {
+      if (this.onUserInterrupt) {
+        this.onUserInterrupt();
       }
     }
   

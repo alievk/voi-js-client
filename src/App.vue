@@ -139,6 +139,11 @@ export default {
         }
         this.addSystemMessage(`Received message with metadata: ${JSON.stringify(metadata)}`);
       };
+
+      this.client.onUserInterrupt = () => {
+        this.addSystemMessage('Received user interrupt');
+        this.audioStreamPlayer.interrupt();
+      };
     },
 
     updateMessages(data) {
