@@ -14,7 +14,7 @@
           v-model="textMessage" 
           placeholder="Type a message..."
           @keyup.enter="sendMessage"
-          :disabled="!(agentState == 'ready')"
+          :disabled="!(mode === 'chat' && agentState == 'ready')"
         >
         <button 
           @click="sendMessage" 
@@ -25,7 +25,7 @@
         </button>
         <MicButton 
           :is-recording="isRecordingUserAudio"
-          :enabled="agentState === 'ready'"
+          :enabled="mode === 'chat' && agentState === 'ready'"
           @start-recording="$emit('start-recording')"
           @stop-recording="$emit('stop-recording')"
         />
@@ -53,6 +53,7 @@ export default {
   props: {
     isRecordingUserAudio: Boolean,
     agentState: String,
+    mode: String,
     attachedImages: Array
   },
   data() {

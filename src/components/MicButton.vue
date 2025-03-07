@@ -96,7 +96,7 @@ export default {
     },
 
     showDisabledMessage() {
-      window.alert('Please activate an agent in the sidebar before recording voice.');
+      window.alert('Please start chat with an agent in the sidebar before recording voice.');
     }
   },
 

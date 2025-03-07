@@ -1,3 +1,12 @@
+/*
+Voice Agent States:
+- disconnected: Initial state or when connection is closed. No active WebSocket connection.
+- connected: WebSocket connection established but agent not initialized yet.
+- activating: Agent initialization in progress (loading models, configs).
+- ready: Agent fully initialized and ready to process user input.
+- busy: Agent is currently processing/generating a response.
+*/
+
 export class VoiceAgentClient {
     constructor(hostname, port, token) {
         if (!hostname || !port || !token) {
@@ -12,10 +21,17 @@ export class VoiceAgentClient {
         this.onStatus = null;
         this.onError = null;
         this.onMessage = null;
+        this.onUserInterrupt = null;
     }
   
-    async connect(agentName, agentConfig = null, streamUserStt = true, finalSttCorrection = true, 
-      streamOutputAudio = true, initGreeting = true) {
+    async connect(agentName, {
+      agentConfig = null, 
+      mode = 'chat', 
+      streamUserStt = true, 
+      finalSttCorrection = true, 
+      streamOutputAudio = true, 
+      initGreeting = true
+    }) {
         if (!agentName) {
             throw new Error('agentName is required');
         }
@@ -41,6 +57,7 @@ export class VoiceAgentClient {
               type: 'init',
               agent_name: agentName,
               agent_config: agentConfig,
+              mode: mode,
               stream_user_stt: streamUserStt,
               final_stt_correction: finalSttCorrection,
               stream_output_audio: streamOutputAudio,
@@ -199,25 +216,28 @@ export class VoiceAgentClient {
     }
 
     _socketMessageHandler = async (event) => {
-        try {
-            const { metadata, payload } = await this._parseMessage(event.data);
-            if (metadata.type === 'message' || metadata.type === 'audio' || metadata.type === 'llm_response') {
-              if (this.onMessage) {
-                this.onMessage(metadata, payload);
-              }
-              this._onStatus('ready');
-            } else if (metadata.type === 'init_done') {
-              this._onStatus('ready');
-            } else if (metadata.type === 'response_created') {
-              this._onStatus('busy');
-            } else if (metadata.type === 'error') {
-              this._onError(`Server error: ${metadata.error}`);
-            } else {
-              this._onError(`Unknown message type: ${metadata.type}`);
+      try {
+          const { metadata, payload } = await this._parseMessage(event.data);
+          if (metadata.type === 'message' || metadata.type === 'audio' || metadata.type === 'llm_response') {
+            if (this.onMessage) {
+              this.onMessage(metadata, payload);
             }
-        } catch (error) {
-            this._onError(`Failed to process message: ${error.message}`);
-        }
+          } else if (metadata.type === 'status') {
+            if (metadata.status === 'response_created') {
+              this._onStatus('busy');
+            } else if (metadata.status === 'init_done' || metadata.status === 'response_cancelled' || metadata.status === 'response_done') {
+              this._onStatus('ready');
+            } else if (metadata.status === 'user_interrupt') {
+              this._onUserInterrupt();
+            }
+          } else if (metadata.type === 'error') {
+            this._onError(`Server error: ${metadata.error}`);
+          } else {
+            this._onError(`Unknown message type: ${metadata.type}`);
+          }
+      } catch (error) {
+          this._onError(`Failed to process message: ${error.message}`);
+      }
     }
 
     _onStatus(status) {
@@ -233,6 +253,12 @@ export class VoiceAgentClient {
     _onError = (error) => {
       if (this.onError) {
         this.onError(error);
+      }
+    }
+
+    _onUserInterrupt = () => {
+      if (this.onUserInterrupt) {
+        this.onUserInterrupt();
       }
     }
   
