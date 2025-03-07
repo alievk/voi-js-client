@@ -178,12 +178,12 @@ export default {
       }
     },
 
-    disconnect() {
+    async disconnect() {
       if (this.audioStreamPlayer) {
         this.audioStreamPlayer.interrupt();
         this.audioStreamPlayer = null;
       }
-      this.stopRecordingUserAudio();
+      await this.stopRecordingUserAudio();
       this.client.disconnect();
     },
 
@@ -299,18 +299,18 @@ export default {
       );
     },
 
-    handleStartChat(agentName) {
+    async handleStartChat(agentName) {
       this.mode = 'chat';
       this.addSystemMessage(`Starting chat with agent: ${agentName}`);
-      this.disconnect();
+      await this.disconnect();
       this.cleanMessages();
       this.connect(agentName, 'chat');
     },
 
-    handleStartCall(agentName) {
+    async handleStartCall(agentName) {
       this.mode = 'call';
       this.addSystemMessage(`Starting call with agent: ${agentName}`);
-      this.disconnect();
+      await this.disconnect();
       this.cleanMessages();
       this.connect(agentName, 'call');
     },
