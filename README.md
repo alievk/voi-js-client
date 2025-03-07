@@ -1,7 +1,11 @@
 # Voi JS Client
-I created this client for testing the Voi backend from the beginning. It has a primitive design, but it gets the job done!
+I created this client for testing the [Voi backend](https://github.com/alievk/voi-server.git) from the beginning. It has a primitive design, but it gets the job done!
 
 Demo video -> https://www.youtube.com/watch?v=oOYvM61eYNk
+
+## News
+
+- 02/22/2025 - Added user images support.
 
 ## Requirements
 This app is built on top of [Vue](https://vuejs.org/), but all you need is Docker on your machine.
