@@ -16,12 +16,21 @@
         >
           Chat
         </button>
+        <div class="button-delimiter"></div>
         <button 
           @click="startCall"
           :disabled="agentState === 'connected' || agentState === 'activating'"
           class="action-button"
         >
           Call
+        </button>
+        <div class="button-delimiter"></div>
+        <button 
+          @click="disconnect"
+          :disabled="agentState === 'disconnected'"
+          class="action-button disconnect-button"
+        >
+          Disconnect
         </button>
       </div>
       
@@ -125,6 +134,10 @@ export default {
       this.$emit('start-call', this.selectedAgentKey);
     },
 
+    disconnect() {
+      this.$emit('disconnect');
+    },
+
     handleSendPrompt(data) {
       this.$emit('send-prompt', data);
     }
@@ -189,8 +202,16 @@ p {
 
 .button-group {
   display: flex;
+  align-items: center;
   gap: 10px;
   justify-content: center;
+}
+
+.button-delimiter {
+  width: 2px;
+  height: 24px;
+  background-color: #e1e1e1;
+  border-radius: 1px;
 }
 
 .action-button {
@@ -227,9 +248,29 @@ p {
 }
 
 .action-button:disabled:hover {
-  background-color: #3498db;
   transform: none;
   box-shadow: none;
+}
+
+.action-button.disconnect-button {
+  background-color: #ff4444;
+}
+
+.action-button.disconnect-button:hover:not(:disabled) {
+  background-color: #ff0000;
+}
+
+.action-button.disconnect-button:active {
+  background-color: #ff0000;
+}
+
+.action-button.disconnect-button:disabled {
+  background-color: #ff4444;
+  opacity: 0.6;
+}
+
+.action-button.disconnect-button:disabled:hover {
+  background-color: #ff4444;
 }
 
 .delimiter {

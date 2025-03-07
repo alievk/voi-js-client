@@ -36,6 +36,7 @@
         @start-chat="handleStartChat"
         @start-call="handleStartCall"
         @send-prompt="handleSendPrompt"
+        @disconnect="handleDisconnect"
         :systemMessages="systemMessages"
         :agents="agents"
         :llmResponse="llmResponse"
@@ -318,6 +319,11 @@ export default {
       await this.disconnect();
       this.cleanMessages();
       this.connect(agentName, 'call');
+    },
+
+    async handleDisconnect() {
+      this.addSystemMessage('Disconnecting from agent');
+      await this.disconnect();
     },
 
     fetchAgents() {
